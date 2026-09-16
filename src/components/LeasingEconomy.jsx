@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { MapPin, Phone, CheckCircle, XCircle, Search, Tag } from 'lucide-react';
+import RentModal from './RentModal';
 
 const FALLBACK_EQUIPMENT = [
   { id: 1, title: 'Mahindra 575 DI Tractor', category: 'Tractors', price_per_day: 1800, owner_name: 'K. Suresh Kumar', panchayat_location: 'Alappuzha Panchayat', contact_number: '+91 98470 12345', is_available: true, image_url: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=800' },
@@ -18,6 +19,7 @@ export default function LeasingEconomy({ onSelectEquipment }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     fetchEquipment();
@@ -175,7 +177,7 @@ export default function LeasingEconomy({ onSelectEquipment }) {
                   <span className="text-xs text-gray-500"> / day</span>
                 </div>
                 <button
-                  onClick={() => onSelectEquipment && onSelectEquipment(item)}
+                  onClick={() => setSelectedItem(item)}
                   disabled={!item.is_available}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
                     item.is_available
@@ -189,6 +191,10 @@ export default function LeasingEconomy({ onSelectEquipment }) {
             </div>
           ))}
         </div>
+      )}
+
+      {selectedItem && (
+        <RentModal equipment={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
     </div>
   );
