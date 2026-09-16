@@ -19,6 +19,7 @@ import {
 import AIAssistantModal from './components/AIAssistantModal';
 import DynamicIsland from './components/DynamicIsland';
 import SandboxWidget from './components/SandboxWidget';
+import LeasingEconomy from './components/LeasingEconomy';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'equipment' | 'share' | 'dashboard' | 'sandbox'
@@ -186,99 +187,9 @@ export default function App() {
           </div>
         </header>
 
-        {/* Main Content Body (extra bottom padding keeps content clear of the Dynamic Island) */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 space-y-8">
-          {/* Page Title Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#20A85A] uppercase tracking-wider mb-1">
-                <span>Verified Equipment Fleet</span>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#171717]">
-                Agricultural Equipment Rentals
-              </h1>
-              <p className="text-sm text-[#555555] mt-1">
-                Book nearby tractors, harvesters, and implements at transparent community rates.
-              </p>
-            </div>
-
-            {/* Quick Filter Search */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search tractor, rotavator..."
-                  className="pl-10 pr-4 py-2 text-sm bg-white border border-[#E5E5E5] rounded-full focus:outline-none focus:border-[#20A85A]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Equipment Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {equipmentList.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-[24px] border border-[#E5E5E5] overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="relative h-48 bg-slate-100 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                    <span className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                      item.available 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'bg-slate-800 text-white'
-                    }`}>
-                      {item.available ? 'Available Today' : 'Reserved'}
-                    </span>
-                  </div>
-
-                  <div className="p-5 space-y-3">
-                    <span className="text-[11px] font-semibold text-[#20A85A] uppercase tracking-wider">
-                      {item.category}
-                    </span>
-                    <h3 className="text-lg font-bold text-[#171717]">{item.name}</h3>
-
-                    <div className="flex items-center gap-1.5 text-xs text-[#555555]">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{item.location}</span>
-                    </div>
-
-                    {/* Feature Tags */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {item.features.map((feat, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[11px] bg-[#F7F6F2] text-[#555555] px-2.5 py-0.5 rounded-full border border-slate-200"
-                        >
-                          {feat}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="p-5 pt-3 border-t border-[#E5E5E5] flex items-center justify-between bg-slate-50/50">
-                  <div>
-                    <p className="text-xs text-[#555555]">Rate</p>
-                    <p className="text-base font-bold text-[#171717]">{item.hourlyRate}</p>
-                  </div>
-                  <button
-                    onClick={() => setIsAIModalOpen(true)}
-                    className="px-4 py-2 rounded-full bg-[#20A85A] hover:bg-[#168447] text-white text-xs font-semibold transition-colors"
-                  >
-                    Book Rental
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Main Content Body */}
+        <main className="pb-40">
+          <LeasingEconomy onSelectEquipment={(item) => setIsAIModalOpen(true)} />
         </main>
       </>
     );
