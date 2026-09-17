@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Bot, Sparkles, X, Send, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useTranslation } from 'react-i18next';
+import { checkRateLimit, recordCall, remainingMessages } from '../lib/rateLimiter';
 
 // Initialize the Google Generative AI with the API key from environment variables
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+
+// Security: maximum characters accepted in a single user message
+const MAX_INPUT_LENGTH = 500;
 
 export default function AIAssistantModal({ isOpen, onClose }) {
   const { t } = useTranslation();
@@ -32,8 +36,20 @@ export default function AIAssistantModal({ isOpen, onClose }) {
   ];
 
   const handleSend = async (textToSend) => {
-    const text = textToSend || query;
-    if (!text.trim()) return;
+    // Trim and enforce length cap before anything else
+    const rawText = (textToSend || query).trim();
+    const text = rawText.slice(0, MAX_INPUT_LENGTH);
+    if (!text) return;
+
+    // Security: enforce client-side rate limit
+    const { allowed, reason } = checkRateLimit();
+    if (!allowed) {
+      setMessages(prev => [...prev, { sender: 'ai', text: reason }]);
+      return;
+    }
+
+    // Record the call BEFORE the async operation so rapid clicks are also throttled
+    recordCall();
 
     // Add user message
     const newMessages = [...messages, { sender: 'user', text }];
@@ -48,9 +64,8 @@ export default function AIAssistantModal({ isOpen, onClose }) {
     }
 
     try {
-      // Switched to gemini-1.5-pro for better availability/reliability
       const model = genAI.getGenerativeModel({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: "You are the AgriShare Farming & Machinery Assistant. You help farmers optimize yield, equipment rentals, and soil health. Give concise, practical advice."
       });
 
@@ -60,18 +75,19 @@ export default function AIAssistantModal({ isOpen, onClose }) {
         parts: [{ text: m.text }]
       }));
 
-      const chat = model.startChat({
-        history: history,
-      });
+      const chat = model.startChat({ history });
 
       const result = await chat.sendMessage(text);
       const reply = result.response.text();
 
       setMessages([...newMessages, { sender: 'ai', text: reply }]);
     } catch (error) {
-      console.error("Error generating AI response:", error);
-      // Fallback response so it remains interactable even if the API fails (e.g., due to API key issues or quotas)
-      const fallbackReply = "Based on regional data: For 10–15 acres, a 45–50 HP tractor is optimal. You can rent one on AgriShare for ~₹750/hour. (Note: Live AI is currently offline. Error: " + error.message + ")";
+      // Security: do NOT expose raw error.message to the UI — log internally only
+      console.error('AgriShare AI error:', error);
+      const fallbackReply =
+        'Based on regional data: For 10–15 acres, a 45–50 HP tractor is optimal. ' +
+        'You can rent one on AgriShare for ~\u20b9750/hour. ' +
+        '(Note: Live AI is temporarily unavailable. Please try again shortly.)';
       setMessages([...newMessages, { sender: 'ai', text: fallbackReply }]);
     } finally {
       setIsTyping(false);
@@ -153,21 +169,35 @@ export default function AIAssistantModal({ isOpen, onClose }) {
         </div>
 
         {/* Input Bar */}
-        <div className="p-4 bg-white/5 border-t border-white/10 flex items-center gap-2">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={t('ai_modal.placeholder')}
-            className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-emerald-500/50 focus:bg-white/15 backdrop-blur-sm transition-all"
-          />
-          <button
-            onClick={() => handleSend()}
-            className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center transition-colors shadow-sm shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        <div className="p-4 bg-white/5 border-t border-white/10">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={query}
+              maxLength={MAX_INPUT_LENGTH}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={t('ai_modal.placeholder')}
+              className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-emerald-500/50 focus:bg-white/15 backdrop-blur-sm transition-all"
+            />
+            <button
+              onClick={() => handleSend()}
+              className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center transition-colors shadow-sm shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Character counter + session remaining — security transparency */}
+          <div className="flex justify-between mt-1.5 px-1">
+            <span className={`text-[10px] ${
+              query.length > MAX_INPUT_LENGTH * 0.9 ? 'text-amber-400' : 'text-white/30'
+            }`}>
+              {query.length}/{MAX_INPUT_LENGTH}
+            </span>
+            <span className="text-[10px] text-white/30">
+              {remainingMessages()} messages left this session
+            </span>
+          </div>
         </div>
       </div>
     </div>

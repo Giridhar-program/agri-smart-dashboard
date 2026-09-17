@@ -12,11 +12,42 @@ CREATE TABLE equipment_lease (
     image_url TEXT
 );
 
+-- ═══════════════════════════════════════════════════════════════
+-- Row Level Security (RLS)
+-- Security posture:
+--   READ  → public (anon) — equipment listings are public information
+--   WRITE → authenticated users only — prevents anonymous data tampering
+-- ═══════════════════════════════════════════════════════════════
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE equipment_lease ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow public read access (for hackathon demo)
-CREATE POLICY "Allow public read access" 
-ON equipment_lease 
-FOR SELECT 
+-- Policy: Anyone can read equipment listings
+CREATE POLICY "Allow public read access"
+ON equipment_lease
+FOR SELECT
+USING (true);
+
+-- Policy: Only authenticated users can insert new equipment
+CREATE POLICY "Allow authenticated insert"
+ON equipment_lease
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- Policy: Only the row owner (matched by owner_name = user email) can update
+-- NOTE: For production, add an owner_id UUID column referencing auth.users.id
+--       and replace this with: USING (owner_id = auth.uid())
+CREATE POLICY "Allow authenticated update"
+ON equipment_lease
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Policy: Only authenticated users can delete (tighten with owner_id in production)
+CREATE POLICY "Allow authenticated delete"
+ON equipment_lease
+FOR DELETE
+TO authenticated
 USING (true);

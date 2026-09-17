@@ -5,6 +5,44 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AgriShare - Smart Agriculture & Equipment Platform</title>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Security Headers (meta-tag equivalents)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+      Content-Security-Policy
+      Allows:
+        default-src  'self'
+        script-src   'self' + 'unsafe-inline' (required by Vite HMR in dev)
+        style-src    'self' 'unsafe-inline' + Google Fonts
+        font-src     Google Fonts static
+        img-src      'self' data: + Unsplash CDN (equipment images)
+        connect-src  'self' + Supabase + Google Generative AI API
+        frame-src    'none' (no iframes)
+        object-src   'none'
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com;
+      connect-src 'self'
+        https://*.supabase.co
+        https://generativelanguage.googleapis.com;
+      frame-src 'none';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    " />
+
+    <!-- Prevent MIME-type sniffing attacks -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+
+    <!-- Limit referrer info sent to third-party origins -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <!-- Google Fonts: Inter & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
