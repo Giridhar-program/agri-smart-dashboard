@@ -11,11 +11,11 @@ Build output: `dist/` — upload this folder to any static host.
 ## 🚀 Option 1 — Vercel (Recommended, fastest)
 
 ### One-click deploy
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Giridhar-program/agri-smart-dashboard)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Giridhar-program/agrishare-hackathon)
 
 ### Manual steps
 1. Go to [vercel.com](https://vercel.com) → **New Project** → Import from GitHub
-2. Select `agri-smart-dashboard`
+2. Select `agrishare-hackathon`
 3. Framework: **Vite** (auto-detected)
 4. Build command: `npm run build`  
    Output directory: `dist`
@@ -89,8 +89,8 @@ Build output: `dist/` — upload this folder to any static host.
 
 ```bash
 # 1. Clone
-git clone https://github.com/Giridhar-program/agri-smart-dashboard.git
-cd agri-smart-dashboard
+git clone https://github.com/Giridhar-program/agrishare-hackathon.git
+cd agrishare-hackathon
 
 # 2. Install
 npm install
