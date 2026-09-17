@@ -3,6 +3,9 @@
 A **static Vite + React** app. No server required.  
 Build output: `dist/` — upload this folder to any static host.
 
+> **Note on env files:** The credentials template is named `example.env` (not `.env.example`).
+> This prevents Render, Netlify, and some CI tools from auto-loading it as real environment variables.
+
 ---
 
 ## 🚀 Option 1 — Vercel (Recommended, fastest)
@@ -92,9 +95,9 @@ cd agri-smart-dashboard
 # 2. Install
 npm install
 
-# 3. Configure env
-cp .env.example .env.local
-# Fill in your keys in .env.local
+# 3. Configure env — copy the template and fill in your real values
+cp example.env .env.local
+# Edit .env.local with your actual Supabase URL, anon key, and Gemini key
 
 # 4. Start
 npm run dev
