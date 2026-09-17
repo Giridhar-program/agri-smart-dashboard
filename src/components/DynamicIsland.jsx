@@ -59,14 +59,14 @@ export default function DynamicIsland({ activeView, onNavigate, onOpenAI }) {
       {/* `relative` anchors the absolutely-positioned sliding pill to the nav bar */}
       <nav
         aria-label="Dynamic Island navigation"
-        className="relative flex items-center gap-1 px-2 py-1.5 rounded-full backdrop-blur-md bg-white/80 border border-slate-200 shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-300"
+        className="relative flex items-center gap-1 px-2 py-1.5 rounded-full backdrop-blur-xl bg-black/40 border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300"
       >
         {/* The sliding active pill — one element that glides between items.
             transition-[left,width] animates both position and size so moving
             between narrow/wide items (icon-only vs icon+label) stays smooth. */}
         <span
           aria-hidden="true"
-          className="absolute top-1.5 bottom-1.5 rounded-full bg-emerald-100 transition-[left,width] duration-300 ease-out"
+          className="absolute top-1.5 bottom-1.5 rounded-full bg-white/20 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] transition-[left,width] duration-300 ease-out"
           style={{
             left: `${pill.left}px`,
             width: `${pill.width}px`,
@@ -84,13 +84,13 @@ export default function DynamicIsland({ activeView, onNavigate, onOpenAI }) {
               aria-current={isActive ? 'page' : undefined}
               className={`group relative z-10 flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs font-semibold transition-colors duration-200 cursor-pointer ${
                 isActive
-                  ? 'text-emerald-800' // pill supplies the background now
-                  : 'text-[#555555] hover:text-[#171717]'
+                  ? 'text-white' // pill supplies the background now
+                  : 'text-white/60 hover:text-white'
               }`}
             >
               <Icon
                 className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${
-                  isActive ? 'text-emerald-800' : 'text-[#555555] group-hover:text-[#20A85A]'
+                  isActive ? 'text-white' : 'text-white/60 group-hover:text-emerald-400'
                 }`}
               />
               <span className="hidden sm:inline">{label}</span>

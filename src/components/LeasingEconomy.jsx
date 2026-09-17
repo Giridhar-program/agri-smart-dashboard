@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { MapPin, Phone, CheckCircle, XCircle, Search, Tag } from 'lucide-react';
+import { MapPin, Phone, CheckCircle, XCircle, Search, Tag, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import RentModal from './RentModal';
+import AddEquipmentModal from './AddEquipmentModal';
 
 const FALLBACK_EQUIPMENT = [
   { id: 1, title: 'Mahindra 575 DI Tractor', category: 'Tractors', price_per_day: 1800, owner_name: 'K. Suresh Kumar', panchayat_location: 'Alappuzha Panchayat', contact_number: '+91 98470 12345', is_available: true, image_url: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=800' },
@@ -15,11 +17,13 @@ const FALLBACK_EQUIPMENT = [
 ];
 
 export default function LeasingEconomy({ onSelectEquipment }) {
+  const { t } = useTranslation();
   const [equipmentList, setEquipmentList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchEquipment();
@@ -48,6 +52,20 @@ export default function LeasingEconomy({ onSelectEquipment }) {
     }
   }
 
+  const handleAddEquipment = (newItem) => {
+    // Optimistically update the list locally
+    setEquipmentList(prev => [
+      {
+        ...newItem,
+        title: newItem.name,
+        panchayat_location: newItem.location,
+        contact_number: newItem.phone,
+        is_available: true
+      },
+      ...prev
+    ]);
+  };
+
   const categories = ['All', ...new Set(equipmentList.map((item) => item.category))];
 
   const filteredEquipment = equipmentList.filter((item) => {
@@ -60,28 +78,36 @@ export default function LeasingEconomy({ onSelectEquipment }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header & Search Bar */}
       <div className="mb-8 text-center max-w-2xl mx-auto">
         <span className="inline-block px-3 py-1 bg-green-100 text-[#20A85A] text-xs font-semibold rounded-full mb-3">
-          Shared Panchayat Network
+          {t('leasing.shared_network')}
         </span>
-        <h2 className="text-3xl font-bold text-[#171717] tracking-tight">
-          Agricultural Equipment Leasing
+        <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight drop-shadow-md">
+          {t('leasing.title')}
         </h2>
-        <p className="text-[#555555] mt-2 text-sm">
-          Rent affordable machinery direct from verified equipment owners across Kerala Panchayats.
+        <p className="text-white/80 mt-3 text-sm sm:text-base drop-shadow-sm max-w-lg mx-auto">
+          {t('leasing.subtitle')}
         </p>
 
-        {/* Search Input */}
-        <div className="mt-6 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by equipment or Panchayat location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-[#E5E5E5] rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#20A85A]/50 shadow-sm transition"
-          />
+        {/* Search & Action Bar */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('leasing.search_placeholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-[#E5E5E5] rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#20A85A]/50 shadow-sm transition"
+            />
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-6 py-3 bg-[#20A85A] text-white rounded-full font-semibold flex items-center justify-center gap-2 hover:bg-[#168447] transition shadow-sm whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            {t('leasing.add_equipment')}
+          </button>
         </div>
 
         {/* Category Pills */}
@@ -90,13 +116,13 @@ export default function LeasingEconomy({ onSelectEquipment }) {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition shadow-sm ${
                 selectedCategory === cat
-                  ? 'bg-[#20A85A] text-white'
-                  : 'bg-white border border-[#E5E5E5] text-[#555555] hover:bg-gray-50'
+                  ? 'bg-[#20A85A] text-white border border-[#20A85A]'
+                  : 'bg-white/10 border border-white/20 text-white/90 hover:bg-white/20 backdrop-blur-md'
               }`}
             >
-              {cat}
+              {cat === 'All' ? t('leasing.categories.all') : cat}
             </button>
           ))}
         </div>
@@ -133,11 +159,11 @@ export default function LeasingEconomy({ onSelectEquipment }) {
                     >
                       {item.is_available ? (
                         <>
-                          <CheckCircle className="w-3.5 h-3.5" /> Available
+                          <CheckCircle className="w-3.5 h-3.5" /> {t('leasing.available')}
                         </>
                       ) : (
                         <>
-                          <XCircle className="w-3.5 h-3.5" /> Rented
+                          <XCircle className="w-3.5 h-3.5" /> {t('leasing.rented')}
                         </>
                       )}
                     </span>
@@ -170,11 +196,11 @@ export default function LeasingEconomy({ onSelectEquipment }) {
               {/* Card Footer */}
               <div className="p-5 pt-0 mt-2 flex items-center justify-between border-t border-slate-100">
                 <div>
-                  <span className="text-xs text-gray-400 block">Daily Rate</span>
+                  <span className="text-xs text-gray-400 block">{t('leasing.per_day')}</span>
                   <span className="text-lg font-extrabold text-[#171717]">
                     ₹{item.price_per_day}
                   </span>
-                  <span className="text-xs text-gray-500"> / day</span>
+                  <span className="text-xs text-gray-500"> / {t('leasing.per_day').split(' ')[1] || 'day'}</span>
                 </div>
                 <button
                   onClick={() => setSelectedItem(item)}
@@ -185,7 +211,7 @@ export default function LeasingEconomy({ onSelectEquipment }) {
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {item.is_available ? 'Rent Now' : 'Unavailable'}
+                  {item.is_available ? t('leasing.rent_now') : t('leasing.unavailable')}
                 </button>
               </div>
             </div>
@@ -196,6 +222,11 @@ export default function LeasingEconomy({ onSelectEquipment }) {
       {selectedItem && (
         <RentModal equipment={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
+      <AddEquipmentModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSubmit={handleAddEquipment} 
+      />
     </div>
   );
 }

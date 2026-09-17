@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import LandingPage from './pages/LandingPage';
 import { 
   ArrowLeft, 
@@ -20,15 +21,30 @@ import AIAssistantModal from './components/AIAssistantModal';
 import DynamicIsland from './components/DynamicIsland';
 import SandboxWidget from './components/SandboxWidget';
 import LeasingEconomy from './components/LeasingEconomy';
+import OnboardingModal from './components/OnboardingModal';
+import HowItWorks from './pages/HowItWorks';
+import MarketPriceAnalyzer from './pages/MarketPriceAnalyzer';
 
 export default function App() {
+  const { i18n } = useTranslation();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
+    !!localStorage.getItem('agrishare_language')
+  );
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('agrishare_language');
+    if (savedLang) {
+      i18n.changeLanguage(savedLang);
+    }
+  }, [i18n]);
+
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'equipment' | 'share' | 'dashboard' | 'sandbox'
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
   // Central hook that owns the main content swap (PRD §4 "State Hook" pattern).
   const [activeView, setActiveView] = useState('overview');
   // Map the PRD destination ids onto the app's existing view ids:
-  // 'overview' -> 'home' landing, 'market' -> 'equipment' leasing, 'ai' -> modal.
+  // map the PRD destination ids onto the app's existing view ids:
   const navigate = (destination) => {
     const viewMap = { overview: 'home', market: 'equipment' };
     if (destination === 'ai') {
@@ -106,31 +122,31 @@ export default function App() {
     content = (
       <>
         {/* Top Secondary Bar — same chrome as the equipment view for consistency */}
-        <header className="h-20 bg-white border-b border-[#E5E5E5] px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-20 bg-white/10 backdrop-blur-lg border-b border-white/20 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('overview')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E5E5E5] text-xs font-semibold text-[#555555] hover:text-[#171717] hover:bg-slate-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Home</span>
+              <span>{i18n.t('app.back_to_home')}</span>
             </button>
-            <div className="h-6 w-px bg-slate-200"></div>
+            <div className="h-6 w-px bg-white/20"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#EAF7EF] text-[#20A85A] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
                 <FlaskConical className="w-4 h-4" />
               </div>
-              <span className="font-bold text-base text-[#171717]">AgriShare</span>
+              <span className="font-bold text-base text-white">AgriShare</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EAF7EF] text-[#20A85A] text-xs font-semibold hover:bg-emerald-100 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 transition-colors border border-emerald-500/30"
             >
               <Bot className="w-3.5 h-3.5" />
-              <span>Ask Agri-AI</span>
+              <span>{i18n.t('app.ask_ai')}</span>
             </button>
           </div>
         </header>
@@ -139,10 +155,50 @@ export default function App() {
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40">
           <SandboxWidget title="Future IoT Integrations">
             {/* Example injected child demonstrating the extensible wrapper (PRD §5.4 purpose) */}
-            <p className="text-xs text-[#555555] text-center max-w-md">
+            <p className="text-xs text-white/60 text-center max-w-md">
               Prototype slot — a future IoT soil-moisture or weather-API widget will mount here.
             </p>
           </SandboxWidget>
+        </main>
+      </>
+    );
+  } else if (currentView === 'how_it_works') {
+    content = (
+      <>
+        {/* Top Secondary Bar */}
+        <header className="h-20 bg-white/10 backdrop-blur-lg border-b border-white/20 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setCurrentView('home')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{i18n.t('app.back_to_home')}</span>
+            </button>
+          </div>
+        </header>
+        <main className="pb-40">
+          <HowItWorks />
+        </main>
+      </>
+    );
+  } else if (currentView === 'market_price') {
+    content = (
+      <>
+        {/* Top Secondary Bar */}
+        <header className="h-20 bg-white/10 backdrop-blur-lg border-b border-white/20 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setCurrentView('home')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{i18n.t('app.back_to_home')}</span>
+            </button>
+          </div>
+        </header>
+        <main className="pb-40 h-full">
+          <MarketPriceAnalyzer />
         </main>
       </>
     );
@@ -151,38 +207,38 @@ export default function App() {
     content = (
       <>
         {/* Top Secondary Bar */}
-        <header className="h-20 bg-white border-b border-[#E5E5E5] px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-20 bg-white/10 backdrop-blur-lg border-b border-white/20 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setCurrentView('home')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E5E5E5] text-xs font-semibold text-[#555555] hover:text-[#171717] hover:bg-slate-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Home</span>
+              <span>{i18n.t('app.back_to_home')}</span>
             </button>
-            <div className="h-6 w-px bg-slate-200"></div>
+            <div className="h-6 w-px bg-white/20"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#EAF7EF] text-[#20A85A] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
                 <Sprout className="w-4 h-4" />
               </div>
-              <span className="font-bold text-base text-[#171717]">AgriShare</span>
+              <span className="font-bold text-base text-white">AgriShare</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EAF7EF] text-[#20A85A] text-xs font-semibold hover:bg-emerald-100 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 transition-colors border border-emerald-500/30"
             >
               <Bot className="w-3.5 h-3.5" />
-              <span>Ask Agri-AI</span>
+              <span>{i18n.t('app.ask_ai')}</span>
             </button>
 
             <button
               onClick={() => setCurrentView('home')}
-              className="px-4 py-2 rounded-full bg-[#20A85A] text-white text-xs font-semibold hover:bg-[#168447] transition-colors"
+              className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
             >
-              Switch to Home
+              {i18n.t('app.switch_to_home')}
             </button>
           </div>
         </header>
@@ -196,23 +252,29 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#171717] font-sans antialiased">
-      {content}
+    <div className="min-h-screen bg-black/40 text-white font-sans antialiased">
+      {!hasCompletedOnboarding ? (
+        <OnboardingModal onComplete={() => setHasCompletedOnboarding(true)} />
+      ) : (
+        <>
+          {content}
 
-      {/* AI Assistant modal — ONE persistent instance shared by every view */}
-      <AIAssistantModal 
-        isOpen={isAIModalOpen}
-        onClose={() => setIsAIModalOpen(false)}
-      />
+          {/* AI Assistant modal — ONE persistent instance shared by every view */}
+          <AIAssistantModal 
+            isOpen={isAIModalOpen}
+            onClose={() => setIsAIModalOpen(false)}
+          />
 
-      {/* PRD §4 Dynamic Island — single persistent floating bottom navigation.
-          Mounted outside the view switch so switching views never remounts it,
-          letting the active pill SLIDE between destinations instead of jumping. */}
-      <DynamicIsland
-        activeView={islandActive}
-        onNavigate={navigate}
-        onOpenAI={() => setIsAIModalOpen(true)}
-      />
+          {/* PRD §4 Dynamic Island — single persistent floating bottom navigation.
+              Mounted outside the view switch so switching views never remounts it,
+              letting the active pill SLIDE between destinations instead of jumping. */}
+          <DynamicIsland
+            activeView={islandActive}
+            onNavigate={navigate}
+            onOpenAI={() => setIsAIModalOpen(true)}
+          />
+        </>
+      )}
     </div>
   );
 }

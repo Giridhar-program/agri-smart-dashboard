@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function FeatureCard({
@@ -6,37 +7,27 @@ export default function FeatureCard({
   title,
   description,
   ctaText,
-  imageUrl,
-  fallbackGradient,
   isAI = false,
   onClick,
 }) {
+  const { t } = useTranslation();
+
   return (
     <div
       onClick={onClick}
-      className={`group relative h-[300px] sm:h-[320px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 transform hover:-translate-y-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.12)] border ${
-        isAI ? 'border-[#20A85A]/60 ring-2 ring-[#20A85A]/20' : 'border-[#E5E5E5]/60'
+      className={`feature-card group relative h-[300px] sm:h-[320px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.2)] border bg-white/10 backdrop-blur-xl ${
+        isAI ? 'border-emerald-400/50 hover:bg-white/15' : 'border-white/20 hover:bg-white/20'
       }`}
     >
-      {/* Background Image with Fallback */}
-      <div 
-        className={`absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105 ${fallbackGradient || 'bg-slate-800'}`}
-        style={{ backgroundImage: `url(${imageUrl})` }}
-      />
-
-      {/* Dark Subtle Protective Overlay for Readable White Text */}
-      <div className={`absolute inset-0 transition-opacity duration-300 ${
-        isAI 
-          ? 'bg-gradient-to-t from-[#0B1E13] via-[#0B1E13]/70 to-black/30 group-hover:from-[#0B1E13]/95' 
-          : 'bg-gradient-to-t from-black/85 via-black/55 to-black/25 group-hover:from-black/90'
-      }`} />
+      {/* Subtle shine effect on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Special AI Glow Highlight Badge (if AI card) */}
       {isAI && (
         <div className="absolute top-5 right-5 z-20">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#20A85A]/90 text-white text-[11px] font-bold tracking-wide uppercase shadow-sm backdrop-blur-sm border border-emerald-300/40">
             <Sparkles className="w-3 h-3 text-amber-300" />
-            Core Feature
+            {t('features.core_feature')}
           </span>
         </div>
       )}
@@ -58,7 +49,7 @@ export default function FeatureCard({
           </p>
 
           <div className="pt-2">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-white group-hover:text-[#20A85A] group-hover:translate-x-1 transition-all duration-200">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-white group-hover:text-emerald-300 group-hover:translate-x-1 transition-all duration-300">
               <span>{ctaText}</span>
               <ArrowRight className="w-4 h-4" />
             </span>

@@ -5,8 +5,12 @@
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #F7F6F2;
-    color: #171717;
+    background-color: #0B1E13;
+    background-image: url('/farm-bg.jpg');
+    background-attachment: fixed;
+    background-position: center;
+    background-size: cover;
+    color: #FFFFFF;
     margin: 0;
     padding: 0;
   }
@@ -25,4 +29,9 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #BFBCB2;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }

@@ -1,5 +1,11 @@
-import React from 'react';
-import { Tractor, Users, Bot, Sparkles, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+import { Tractor, Users, Bot, Sparkles, ShieldCheck, CheckCircle2, TrendingUp } from 'lucide-react';
+
+gsap.registerPlugin(ScrollTrigger);
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import FeatureCard from '../components/FeatureCard';
@@ -14,18 +20,30 @@ import AIFloatingButton from '../components/AIFloatingButton';
  * from App and forwards it to every AI entry point below.
  */
 export default function LandingPage({ onNavigate, onOpenAI }) {
-  // Reliable high-resolution agricultural imagery
-  // [FUTURE API/SUPABASE INTEGRATION POINT] Feature-card imagery/copy can later be
-  // fetched from a CMS table (e.g. supabase.from('feature_cards')); static assets
-  // below are intentional for this API-free prototype.
-  const cardImages = {
-    rent: "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1000&q=80", // Tractor in lush green field
-    share: "https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?auto=format&fit=crop&w=1000&q=80", // Harvester / farm machinery
-    ai: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1000&q=80" // Smart tech farming field
-  };
+  const { t } = useTranslation();
+  const cardsRef = useRef(null);
+  
+  useGSAP(() => {
+    gsap.fromTo(
+      ".feature-card",
+      { y: 100, opacity: 0, rotateX: 10 },
+      { 
+        y: 0, 
+        opacity: 1, 
+        rotateX: 0, 
+        duration: 1, 
+        stagger: 0.15, 
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: cardsRef.current,
+          start: "top 85%",
+        }
+      }
+    );
+  }, { scope: cardsRef });
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#171717] flex flex-col justify-between selection:bg-[#20A85A]/20 selection:text-[#168447]">
+    <div className="min-h-screen flex flex-col justify-between selection:bg-emerald-500/20 selection:text-emerald-300">
       {/* 1. TOP FLOATING NAVBAR */}
       <Navbar 
         onNavigate={onNavigate}
@@ -41,38 +59,32 @@ export default function LandingPage({ onNavigate, onOpenAI }) {
         />
 
         {/* 5. THREE HORIZONTAL FEATURE CARDS */}
-        <section className="mt-4 sm:mt-8 mb-8 sm:mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <section className="mt-4 sm:mt-8 mb-8 sm:mb-12" ref={cardsRef}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8" style={{ perspective: '1000px' }}>
             {/* CARD 1: Rent Equipment */}
             <FeatureCard
               icon={Tractor}
-              title="Rent Equipment"
-              description="Access tractors, harvesters, pumps and other agricultural tools without the high purchase cost."
-              ctaText="Explore"
-              imageUrl={cardImages.rent}
-              fallbackGradient="bg-emerald-900"
+              title={t('features.rent.title')}
+              description={t('features.rent.desc')}
+              ctaText={t('features.rent.cta')}
               onClick={() => onNavigate('equipment')}
             />
 
-            {/* CARD 2: Share & Earn */}
+            {/* CARD 2: Market Price Analyzer */}
             <FeatureCard
-              icon={Users}
-              title="Share & Earn"
-              description="Equipment owners can list unused machinery and earn income by renting it to nearby farmers."
-              ctaText="List Equipment"
-              imageUrl={cardImages.share}
-              fallbackGradient="bg-amber-950"
-              onClick={() => onNavigate('share')}
+              icon={TrendingUp}
+              title={t('features.market.title')}
+              description={t('features.market.desc')}
+              ctaText={t('features.market.cta')}
+              onClick={() => onNavigate('market_price')}
             />
 
             {/* CARD 3: AI Farming Assistant (Visually Standout Feature) */}
             <FeatureCard
               icon={Bot}
-              title="AI Farming Assistant"
-              description="Get intelligent farming guidance, recommendations and quick answers whenever you need them."
-              ctaText="Ask AI"
-              imageUrl={cardImages.ai}
-              fallbackGradient="bg-[#0B1E13]"
+              title={t('features.ai.title')}
+              description={t('features.ai.desc')}
+              ctaText={t('features.ai.cta')}
               isAI={true}
               onClick={onOpenAI}
             />
@@ -80,15 +92,15 @@ export default function LandingPage({ onNavigate, onOpenAI }) {
         </section>
 
         {/* Minimalist Trust & Credibility Footnote */}
-        <div className="border-t border-[#E5E5E5] pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#555555]">
+        <div className="border-t border-white/20 pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/60">
           <div className="flex items-center gap-6">
-            <span className="flex items-center gap-1.5 font-medium">
-              <ShieldCheck className="w-4 h-4 text-[#20A85A]" />
-              Verified Equipment Owners
+            <span className="flex items-center gap-1.5 font-medium text-white/80">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              {t('footer.verified')}
             </span>
-            <span className="flex items-center gap-1.5 font-medium">
-              <CheckCircle2 className="w-4 h-4 text-[#20A85A]" />
-              Transparent Hourly & Daily Rates
+            <span className="flex items-center gap-1.5 font-medium text-white/80">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              {t('footer.transparent')}
             </span>
           </div>
           <p className="text-center sm:text-right">
