@@ -5,31 +5,40 @@
  * Uses sessionStorage so limits reset when the tab is closed.
  *
  * Limits:
- *   - MAX_MESSAGES_PER_SESSION: total AI calls allowed in one browser session
- *   - MIN_INTERVAL_MS: minimum milliseconds between consecutive calls (throttle)
+ *   - MAX_MESSAGES_PER_SESSION : total AI calls allowed in one browser session
+ *   - MAX_MESSAGES_PER_MINUTE  : sliding-window cap (last 60 seconds)
+ *   - MIN_INTERVAL_MS          : minimum ms between consecutive calls (throttle)
  */
 
-const STORAGE_KEY = 'agrishare_ai_calls';
-const MAX_MESSAGES_PER_SESSION = 20;   // max total AI calls per session
-const MIN_INTERVAL_MS = 3000;           // 3 seconds minimum between calls
+const STORAGE_KEY           = 'agrishare_ai_calls';
+const MAX_MESSAGES_PER_SESSION = 20;
+const MAX_MESSAGES_PER_MINUTE =  5;   // max 5 AI calls within any 60-second window
+const MIN_INTERVAL_MS          = 3_000; // 3 s minimum between calls
+
+// ─── Storage helpers ──────────────────────────────────────────────────────────
 
 /**
  * Load the stored rate-limit state from sessionStorage.
- * @returns {{ count: number, lastCallAt: number }}
+ * @returns {{ count: number, lastCallAt: number, timestamps: number[] }}
  */
 function loadState() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Back-compat: add timestamps array if missing (upgrade from v1)
+      if (!parsed.timestamps) parsed.timestamps = [];
+      return parsed;
+    }
   } catch (_) {
     // Ignore parse errors — treat as fresh state
   }
-  return { count: 0, lastCallAt: 0 };
+  return { count: 0, lastCallAt: 0, timestamps: [] };
 }
 
 /**
  * Persist the rate-limit state to sessionStorage.
- * @param {{ count: number, lastCallAt: number }} state
+ * @param {{ count: number, lastCallAt: number, timestamps: number[] }} state
  */
 function saveState(state) {
   try {
@@ -39,27 +48,46 @@ function saveState(state) {
   }
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 /**
  * Check whether an AI call is allowed right now.
  *
+ * Checks (in order):
+ *   1. Session cap   — have we exceeded MAX_MESSAGES_PER_SESSION?
+ *   2. Per-minute    — are there >= MAX_MESSAGES_PER_MINUTE in the last 60 s?
+ *   3. Throttle      — has MIN_INTERVAL_MS elapsed since the last call?
+ *
  * @returns {{ allowed: boolean, reason: string | null }}
- *   - allowed: true if the call can proceed
- *   - reason: human-readable denial message, or null if allowed
  */
 export function checkRateLimit() {
   const state = loadState();
-  const now = Date.now();
+  const now   = Date.now();
 
+  // 1. Session cap
   if (state.count >= MAX_MESSAGES_PER_SESSION) {
     return {
       allowed: false,
-      reason: `You've reached the limit of ${MAX_MESSAGES_PER_SESSION} AI messages for this session. Please refresh to continue.`,
+      reason: `You've reached the limit of ${MAX_MESSAGES_PER_SESSION} AI messages for this session. Please refresh to start a new session.`,
     };
   }
 
+  // 2. Per-minute sliding window
+  const windowStart    = now - 60_000;
+  const recentCalls    = (state.timestamps || []).filter((t) => t > windowStart);
+  if (recentCalls.length >= MAX_MESSAGES_PER_MINUTE) {
+    const oldestInWindow = Math.min(...recentCalls);
+    const waitSec = Math.ceil((oldestInWindow + 60_000 - now) / 1_000);
+    return {
+      allowed: false,
+      reason: `You're sending messages too quickly. Please wait ${waitSec} second${waitSec !== 1 ? 's' : ''} before trying again.`,
+    };
+  }
+
+  // 3. Minimum interval throttle
   const elapsed = now - state.lastCallAt;
   if (state.lastCallAt > 0 && elapsed < MIN_INTERVAL_MS) {
-    const wait = Math.ceil((MIN_INTERVAL_MS - elapsed) / 1000);
+    const wait = Math.ceil((MIN_INTERVAL_MS - elapsed) / 1_000);
     return {
       allowed: false,
       reason: `Please wait ${wait} second${wait !== 1 ? 's' : ''} before sending another message.`,
@@ -70,11 +98,22 @@ export function checkRateLimit() {
 }
 
 /**
- * Record a successful AI call (call this AFTER the request is sent).
+ * Record a successful AI call.
+ * Call this AFTER the request is accepted (before the async operation).
  */
 export function recordCall() {
   const state = loadState();
-  saveState({ count: state.count + 1, lastCallAt: Date.now() });
+  const now   = Date.now();
+
+  // Prune timestamps older than 60 s to keep storage small
+  const windowStart = now - 60_000;
+  const timestamps  = [...(state.timestamps || []).filter((t) => t > windowStart), now];
+
+  saveState({
+    count:      state.count + 1,
+    lastCallAt: now,
+    timestamps,
+  });
 }
 
 /**
@@ -84,4 +123,31 @@ export function recordCall() {
 export function remainingMessages() {
   const { count } = loadState();
   return Math.max(0, MAX_MESSAGES_PER_SESSION - count);
+}
+
+/**
+ * Return full rate-limit status (for debugging or detailed UI).
+ * @returns {{ sessionRemaining: number, minuteRemaining: number, nextAllowedAt: number }}
+ */
+export function getRateLimitStatus() {
+  const state = loadState();
+  const now   = Date.now();
+
+  const windowStart = now - 60_000;
+  const recentCalls = (state.timestamps || []).filter((t) => t > windowStart);
+
+  const minuteRemaining = Math.max(0, MAX_MESSAGES_PER_MINUTE - recentCalls.length);
+  const sessionRemaining = Math.max(0, MAX_MESSAGES_PER_SESSION - state.count);
+
+  // When will the next call be allowed?
+  let nextAllowedAt = now;
+  if (sessionRemaining === 0) {
+    nextAllowedAt = Infinity; // never (need a full refresh)
+  } else if (minuteRemaining === 0 && recentCalls.length > 0) {
+    nextAllowedAt = Math.min(...recentCalls) + 60_000;
+  } else if (state.lastCallAt > 0 && (now - state.lastCallAt) < MIN_INTERVAL_MS) {
+    nextAllowedAt = state.lastCallAt + MIN_INTERVAL_MS;
+  }
+
+  return { sessionRemaining, minuteRemaining, nextAllowedAt };
 }

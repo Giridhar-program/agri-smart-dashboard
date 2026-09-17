@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import LandingPage from './pages/LandingPage';
-import { 
-  ArrowLeft, 
-  Tractor, 
-  Calendar, 
-  MapPin, 
-  Fuel, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Sparkles, 
-  Bot, 
-  Search, 
-  Filter, 
+import {
+  ArrowLeft,
+  Tractor,
+  Calendar,
+  MapPin,
+  Fuel,
+  CheckCircle2,
+  ShieldCheck,
+  Sparkles,
+  Bot,
+  Search,
+  Filter,
   ArrowRight,
   Sprout,
-  FlaskConical
+  FlaskConical,
+  WifiOff,
 } from 'lucide-react';
 import AIAssistantModal from './components/AIAssistantModal';
 import DynamicIsland from './components/DynamicIsland';
@@ -24,19 +25,46 @@ import LeasingEconomy from './components/LeasingEconomy';
 import OnboardingModal from './components/OnboardingModal';
 import HowItWorks from './pages/HowItWorks';
 import MarketPriceAnalyzer from './pages/MarketPriceAnalyzer';
+import { runHealthChecks, getHealthMessage } from './lib/healthCheck';
+
+// ─── Health Banner ────────────────────────────────────────────────────────────
+function HealthBanner({ message }) {
+  const [visible, setVisible] = useState(true);
+  if (!visible || !message) return null;
+  return (
+    <div className="fixed top-0 inset-x-0 z-[100] flex items-center gap-3 px-4 py-2.5 bg-amber-900/90 backdrop-blur-md border-b border-amber-600/40 text-amber-100 text-xs font-medium">
+      <WifiOff className="w-4 h-4 shrink-0 text-amber-400" />
+      <span className="flex-1">{message}</span>
+      <button
+        onClick={() => setVisible(false)}
+        className="text-amber-400 hover:text-amber-200 transition font-bold ml-2"
+        aria-label="Dismiss"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const { i18n } = useTranslation();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
     !!localStorage.getItem('agrishare_language')
   );
+  const [healthMessage, setHealthMessage] = useState(null);
 
   useEffect(() => {
     const savedLang = localStorage.getItem('agrishare_language');
-    if (savedLang) {
-      i18n.changeLanguage(savedLang);
-    }
+    if (savedLang) i18n.changeLanguage(savedLang);
   }, [i18n]);
+
+  // Run health checks once on mount (non-blocking)
+  useEffect(() => {
+    runHealthChecks().then((status) => {
+      const msg = getHealthMessage(status);
+      if (msg) setHealthMessage(msg);
+    });
+  }, []);
 
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'equipment' | 'share' | 'dashboard' | 'sandbox'
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -253,6 +281,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-black/40 text-white font-sans antialiased">
+      {/* Uptime / health banner — shown when Supabase or Gemini is unreachable */}
+      <HealthBanner message={healthMessage} />
+
       {!hasCompletedOnboarding ? (
         <OnboardingModal onComplete={() => setHasCompletedOnboarding(true)} />
       ) : (
@@ -260,14 +291,12 @@ export default function App() {
           {content}
 
           {/* AI Assistant modal — ONE persistent instance shared by every view */}
-          <AIAssistantModal 
+          <AIAssistantModal
             isOpen={isAIModalOpen}
             onClose={() => setIsAIModalOpen(false)}
           />
 
-          {/* PRD §4 Dynamic Island — single persistent floating bottom navigation.
-              Mounted outside the view switch so switching views never remounts it,
-              letting the active pill SLIDE between destinations instead of jumping. */}
+          {/* PRD §4 Dynamic Island */}
           <DynamicIsland
             activeView={islandActive}
             onNavigate={navigate}

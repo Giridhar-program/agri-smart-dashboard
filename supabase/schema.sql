@@ -51,3 +51,57 @@ ON equipment_lease
 FOR DELETE
 TO authenticated
 USING (true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- Performance Indexes
+-- ═══════════════════════════════════════════════════════════════
+
+-- Speed up category filter queries (used in LeasingEconomy.jsx .eq('category', ...))
+CREATE INDEX idx_equipment_lease_category
+  ON equipment_lease (category);
+
+-- Partial index for availability filter — only indexes available rows, smaller & faster
+CREATE INDEX idx_equipment_lease_available
+  ON equipment_lease (is_available)
+  WHERE is_available = TRUE;
+
+-- Speed up the default sort (most recent first)
+CREATE INDEX idx_equipment_lease_created_at
+  ON equipment_lease (created_at DESC);
+
+-- Composite index for the common search pattern: category + availability
+CREATE INDEX idx_equipment_lease_category_available
+  ON equipment_lease (category, is_available);
+
+-- ═══════════════════════════════════════════════════════════════
+-- Supabase Storage — equipment-images bucket
+-- ═══════════════════════════════════════════════════════════════
+-- Storage buckets cannot be created via SQL. Follow these steps
+-- in the Supabase Dashboard → Storage:
+--
+--   1. Create a new bucket named: equipment-images
+--   2. Set "Public bucket" = ON (so image URLs work without auth tokens)
+--   3. Add a policy: allow authenticated users to INSERT (upload)
+--   4. Optional: set file size limit to 3MB in bucket settings
+--
+-- The AddEquipmentModal compresses images to ≤800×600 before upload,
+-- so the effective size is typically 100–300 KB.
+
+-- ═══════════════════════════════════════════════════════════════
+-- Production Hardening — owner_id column (future migration)
+-- ═══════════════════════════════════════════════════════════════
+-- When authentication is fully implemented, run this migration:
+--
+-- ALTER TABLE equipment_lease
+--   ADD COLUMN owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+--
+-- Then replace the UPDATE/DELETE policies above with:
+--
+-- CREATE POLICY "Owner can update own equipment"
+-- ON equipment_lease FOR UPDATE TO authenticated
+-- USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid());
+--
+-- CREATE POLICY "Owner can delete own equipment"
+-- ON equipment_lease FOR DELETE TO authenticated
+-- USING (owner_id = auth.uid());
+

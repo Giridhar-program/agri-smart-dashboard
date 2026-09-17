@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, X, Send, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useTranslation } from 'react-i18next';
 import { checkRateLimit, recordCall, remainingMessages } from '../lib/rateLimiter';
+import { logError } from '../lib/logger';
 
 // Initialize the Google Generative AI with the API key from environment variables
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -10,9 +11,12 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 // Security: maximum characters accepted in a single user message
 const MAX_INPUT_LENGTH = 500;
+// AI call timeout in milliseconds
+const AI_TIMEOUT_MS = 15_000;
 
 export default function AIAssistantModal({ isOpen, onClose }) {
   const { t } = useTranslation();
+  const abortControllerRef = useRef(null);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -65,32 +69,55 @@ export default function AIAssistantModal({ isOpen, onClose }) {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
-        systemInstruction: "You are the AgriShare Farming & Machinery Assistant. You help farmers optimize yield, equipment rentals, and soil health. Give concise, practical advice."
+        model: 'gemini-2.5-flash',
+        systemInstruction:
+          'You are the AgriShare Farming & Machinery Assistant. ' +
+          'You help farmers optimize yield, equipment rentals, and soil health. ' +
+          'Give concise, practical advice.',
       });
 
       // Build conversation history for context
-      const history = messages.slice(1).map(m => ({
+      const history = messages.slice(1).map((m) => ({
         role: m.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
+        parts: [{ text: m.text }],
       }));
 
       const chat = model.startChat({ history });
 
-      const result = await chat.sendMessage(text);
-      const reply = result.response.text();
+      // Enforce a 15-second timeout on the Gemini call
+      abortControllerRef.current = new AbortController();
+      const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), AI_TIMEOUT_MS);
+
+      let reply;
+      try {
+        const result = await chat.sendMessage(text);
+        clearTimeout(timeoutId);
+        reply = result.response.text();
+      } catch (innerErr) {
+        clearTimeout(timeoutId);
+        throw innerErr;
+      }
 
       setMessages([...newMessages, { sender: 'ai', text: reply }]);
     } catch (error) {
-      // Security: do NOT expose raw error.message to the UI — log internally only
-      console.error('AgriShare AI error:', error);
-      const fallbackReply =
-        'Based on regional data: For 10–15 acres, a 45–50 HP tractor is optimal. ' +
-        'You can rent one on AgriShare for ~\u20b9750/hour. ' +
-        '(Note: Live AI is temporarily unavailable. Please try again shortly.)';
+      // Security: do NOT expose raw error details to the UI
+      logError('AIAssistantModal: Gemini call failed', error);
+
+      const isTimeout =
+        error.name === 'AbortError' ||
+        error.name === 'TimeoutError' ||
+        error.message?.includes('timed out');
+
+      const fallbackReply = isTimeout
+        ? 'The AI assistant took too long to respond. Please try again with a shorter question.'
+        : 'Based on regional data: For 10–15 acres, a 45–50 HP tractor is optimal. ' +
+          'You can rent one on AgriShare for ~₹750/hour. ' +
+          '(Note: Live AI is temporarily unavailable. Please try again shortly.)';
+
       setMessages([...newMessages, { sender: 'ai', text: fallbackReply }]);
     } finally {
       setIsTyping(false);
+      abortControllerRef.current = null;
     }
   };
 
